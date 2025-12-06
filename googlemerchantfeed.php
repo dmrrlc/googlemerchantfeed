@@ -1,11 +1,11 @@
 <?php
 /**
- * Google Merchant Feed Generator for PrestaShop 9
+ * Google Merchant Feed Generator for PrestaShop 8.1.5
  * 
  * Module: googlemerchantfeed
  * Author: Custom development for airone.ch
- * Version: 1.0.0
- * Compatibility: PrestaShop 9.x
+ * Version: 1.0.0-ps8
+ * Compatibility: PrestaShop 8.1.5+
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -18,10 +18,10 @@ class GoogleMerchantFeed extends Module
     {
         $this->name = 'googlemerchantfeed';
         $this->tab = 'market_place';
-        $this->version = '1.0.0';
+        $this->version = '1.0.0-ps8';
         $this->author = 'Airone.ch';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = ['min' => '9.0.0', 'max' => _PS_VERSION_];
+        $this->ps_versions_compliancy = ['min' => '8.1.5', 'max' => '8.9.9'];
         $this->bootstrap = true;
 
         parent::__construct();
