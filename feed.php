@@ -181,11 +181,32 @@ function outputProductItem($product, $combination, $id_lang, $currency_iso, $shi
         $quantity = (int) StockAvailable::getQuantityAvailableByProduct($id_product);
     }
     
-    $availability = $quantity > 0 ? 'in_stock' : 'out_of_stock';
+    // Check if product is available for order
+    $available_for_order = $product->available_for_order;
     
-    // Allow backorders check
-    if ($quantity <= 0 && $product->out_of_stock == 1) {
-        $availability = 'backorder';
+    // Determine availability based on stock and order permissions
+    if (!$available_for_order) {
+        // Product not available for order - always out of stock
+        $availability = 'out_of_stock';
+    } elseif ($quantity > 0) {
+        // Has stock and available for order
+        $availability = 'in_stock';
+    } else {
+        // No stock - check if backorders are allowed
+        $out_of_stock = (int) $product->out_of_stock;
+        
+        // out_of_stock: 0 = Deny orders, 1 = Allow orders, 2 = Use default
+        if ($out_of_stock == 2) {
+            // Use shop default
+            $default_behavior = (int) Configuration::get('PS_ORDER_OUT_OF_STOCK');
+            $availability = $default_behavior ? 'backorder' : 'out_of_stock';
+        } elseif ($out_of_stock == 1) {
+            // Allow orders when out of stock
+            $availability = 'backorder';
+        } else {
+            // Deny orders when out of stock (value 0)
+            $availability = 'out_of_stock';
+        }
     }
     
     // Get product URL
