@@ -1,117 +1,117 @@
 # Google Merchant Feed Module for PrestaShop 9
 
-Module gratuit pour générer un flux de produits compatible Google Merchant Center.
+Free module to generate a product feed compatible with Google Merchant Center.
 
 ## Installation
 
-1. **Télécharger le dossier `googlemerchantfeed`**
+1. **Download the `googlemerchantfeed` folder**
 
-2. **Uploader via FTP/SFTP**
-   - Connectez-vous à votre serveur Infomaniak
-   - Naviguez vers `/modules/`
-   - Uploadez le dossier complet `googlemerchantfeed`
+2. **Upload via FTP/SFTP**
+   - Connect to your server
+   - Navigate to `/modules/`
+   - Upload the complete `googlemerchantfeed` folder
 
-3. **Installer le module**
-   - Back-office PrestaShop → Modules → Module Manager
-   - Cherchez "Google Merchant Feed"
-   - Cliquez sur "Installer"
+3. **Install the module**
+   - PrestaShop Back-office → Modules → Module Manager
+   - Search for "Google Merchant Feed"
+   - Click "Install"
 
-4. **Configurer le module**
-   - Cliquez sur "Configurer" après l'installation
-   - Choisissez la langue du flux (FR ou EN)
-   - Définissez la devise (CHF)
-   - Configurez les frais de livraison par défaut
+4. **Configure the module**
+   - Click "Configure" after installation
+   - Choose the feed language (FR or EN)
+   - Set the currency (CHF)
+   - Configure default shipping fees
 
-## Configuration Google Merchant Center
+## Google Merchant Center Configuration
 
-1. Connectez-vous à [Google Merchant Center](https://merchants.google.com)
+1. Log in to [Google Merchant Center](https://merchants.google.com)
 
-2. Allez dans **Produits → Flux**
+2. Go to **Products → Feeds**
 
-3. Cliquez sur **Ajouter un flux principal**
+3. Click **Add primary feed**
 
-4. Sélectionnez:
-   - Pays: Suisse
-   - Langue: Français (ou celle configurée)
-   - Destination: Annonces Shopping et fiches produit gratuites
+4. Select:
+   - Country: Switzerland (or the configured one)
+   - Language: French (or the configured one)
+   - Destination: Shopping ads and free product listings
 
-5. Choisissez **Récupération planifiée**
+5. Choose **Scheduled fetch**
 
-6. Entrez l'URL du flux fournie dans la configuration du module:
+6. Enter the feed URL provided in the module configuration:
    ```
-   https://airone.ch/modules/googlemerchantfeed/feed.php?key=VOTRE_CLE_SECRETE
+   https://airone.ch/modules/googlemerchantfeed/feed.php?key=YOUR_SECRET_KEY
    ```
 
-7. Définissez la fréquence de récupération (quotidienne recommandée)
+7. Set the fetch frequency (daily recommended)
 
-## Attributs générés
+## Generated Attributes
 
-Le flux inclut automatiquement:
+The feed automatically includes:
 
-| Attribut | Source PrestaShop |
-|----------|-------------------|
-| id | ID produit + ID déclinaison |
-| title | Nom du produit + attributs |
-| description | Description courte ou longue |
-| link | URL du produit |
-| image_link | Image principale |
-| additional_image_link | Images supplémentaires (max 10) |
-| availability | Stock disponible |
-| price | Prix TTC |
-| brand | Fabricant (ION, DUOTONE, etc.) |
-| gtin | Code EAN13 |
-| mpn | Référence produit |
-| condition | État (new/used/refurbished) |
-| product_type | Chemin de catégorie |
-| item_group_id | Regroupement des variantes |
-| size | Taille (si attribut défini) |
-| color | Couleur (si attribut défini) |
-| shipping | Frais de livraison |
+| Attribute | PrestaShop Source |
+|-----------|-------------------|
+| id | Product ID + combination ID |
+| title | Product name + attributes |
+| description | Short or long description |
+| link | Product URL |
+| image_link | Main image |
+| additional_image_link | Additional images (max 10) |
+| availability | Stock available |
+| price | Price including tax |
+| brand | Manufacturer (ION, DUOTONE, etc.) |
+| gtin | EAN13 code |
+| mpn | Product reference |
+| condition | Condition (new/used/refurbished) |
+| product_type | Category path |
+| item_group_id | Variant grouping |
+| size | Size (if attribute defined) |
+| color | Color (if attribute defined) |
+| shipping | Shipping fees |
 
-## Optimisations pour le kitesurf
 
-Pour améliorer la qualité de vos fiches:
+
+To improve the quality of your listings:
 
 ### EAN/GTIN codes
-- Demandez les codes EAN à vos fournisseurs (Sideshore)
-- Renseignez-les dans chaque fiche produit ou déclinaison
-- Les codes GTIN améliorent le référencement Google Shopping
+- Request EAN codes from your suppliers (Sideshore)
+- Enter them in each product page or combination
+- GTIN codes improve Google Shopping SEO
 
-### Catégories Google
-Mappez vos catégories vers la taxonomie Google:
-- Harnais → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding`
-- Ailes → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding > Kiteboarding Kites`
-- Planches → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding > Kiteboards`
+### Google Categories
+Map your categories to Google taxonomy:
+- Harnesses → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding`
+- Kites → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding > Kiteboarding Kites`
+- Boards → `Sporting Goods > Outdoor Recreation > Water Sports > Kiteboarding > Kiteboards`
 
 ### Images
-- Utilisez des images de haute qualité (min 800x800px)
-- Fond blanc ou neutre de préférence
-- Plusieurs angles par produit
+- Use high-quality images (min 800x800px)
+- White or neutral background preferred
+- Multiple angles per product
 
-## Dépannage
+## Troubleshooting
 
-### Le flux ne s'affiche pas
-- Vérifiez que la clé secrète est correcte dans l'URL
-- Testez l'URL directement dans le navigateur
-- Vérifiez les logs PHP dans Infomaniak
+### Feed not displaying
+- Verify that the secret key is correct in the URL
+- Test the URL directly in your browser
+- Check PHP logs
 
-### Erreurs Google Merchant
-- "Identifiant manquant": Ajoutez les codes EAN ou définissez `identifier_exists` à false (automatique)
-- "Image non valide": Vérifiez que les images sont accessibles publiquement
-- "Prix manquant": Vérifiez que les produits ont un prix défini
+### Google Merchant Errors
+- "Missing identifier": Add EAN codes or set `identifier_exists` to false (automatic)
+- "Invalid image": Verify that images are publicly accessible
+- "Missing price": Verify that products have a defined price
 
-### Actualiser le flux
-Le flux est généré dynamiquement à chaque requête. Google récupère les mises à jour selon la fréquence configurée.
+### Refresh the feed
+The feed is generated dynamically on each request. Google fetches updates according to the configured frequency.
 
-## Sécurité
+## Security
 
-- L'URL contient une clé secrète générée automatiquement
-- Vous pouvez régénérer cette clé dans la configuration si nécessaire
-- Ne partagez pas l'URL publiquement
+- The URL contains an automatically generated secret key
+- You can regenerate this key in the configuration if needed
+- Do not share the URL publicly
 
 ## Support
 
-Module développé spécifiquement pour PrestaShop 9.x et testé avec la configuration airone.ch.
+Module developed specifically for PrestaShop 9.x and tested with the airone.ch configuration.
 
 ---
 
