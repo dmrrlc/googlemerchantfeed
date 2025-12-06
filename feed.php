@@ -184,15 +184,16 @@ function outputProductItem($product, $combination, $id_lang, $currency_iso, $shi
     // Check if product is available for order
     $available_for_order = $product->available_for_order;
     
+    // Check if stock management is enabled for this product
+    $stock_management = (bool) Configuration::get('PS_STOCK_MANAGEMENT');
+    
     // Determine availability based on stock and order permissions
     if (!$available_for_order) {
         // Product not available for order - always out of stock
         $availability = 'out_of_stock';
-    } elseif ($quantity > 0) {
-        // Has stock and available for order
-        $availability = 'in_stock';
-    } else {
-        // No stock - check if backorders are allowed
+    } elseif ($stock_management && $quantity <= 0) {
+        // Stock management enabled and no stock available
+        // Check if backorders are allowed
         $out_of_stock = (int) $product->out_of_stock;
         
         // out_of_stock: 0 = Deny orders, 1 = Allow orders, 2 = Use default
@@ -207,6 +208,15 @@ function outputProductItem($product, $combination, $id_lang, $currency_iso, $shi
             // Deny orders when out of stock (value 0)
             $availability = 'out_of_stock';
         }
+    } elseif ($stock_management && $quantity > 0) {
+        // Stock management enabled and stock available
+        $availability = 'in_stock';
+    } elseif (!$stock_management) {
+        // Stock management disabled - assume always in stock if available for order
+        $availability = 'in_stock';
+    } else {
+        // Fallback: should not reach here, but default to out of stock
+        $availability = 'out_of_stock';
     }
     
     // Get product URL
