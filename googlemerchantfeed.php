@@ -3,9 +3,10 @@
  * Google Merchant Feed Generator for PrestaShop 8.1.5
  * 
  * Module: googlemerchantfeed
- * Author: Custom development for airone.ch
- * Version: 1.0.0-ps8
- * Compatibility: PrestaShop 8.1.5+
+
+ * Author: Custom development for d-side solutions Sàrl
+ * Version: 1.0.0
+ * Compatibility: PrestaShop 8.x-9.x
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -18,8 +19,8 @@ class GoogleMerchantFeed extends Module
     {
         $this->name = 'googlemerchantfeed';
         $this->tab = 'market_place';
-        $this->version = '1.0.0-ps8';
-        $this->author = 'Airone.ch';
+        $this->version = '1.0.0-ps8-9';
+        $this->author = 'd-side solutions Sàrl';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '8.1.5', 'max' => '8.9.9'];
         $this->bootstrap = true;
