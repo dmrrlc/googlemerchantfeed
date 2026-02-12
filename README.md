@@ -1,4 +1,4 @@
-# Google Merchant Feed Module for PrestaShop 9
+# Google Merchant Feed Module for PrestaShop 8.1.5
 
 Free module to generate a product feed compatible with Google Merchant Center.
 
@@ -111,10 +111,10 @@ The feed is generated dynamically on each request. Google fetches updates accord
 
 ## Support
 
-Module developed specifically for PrestaShop 9.x and tested with the airone.ch configuration.
+Module developed specifically for PrestaShop 8.1.5+ and tested with the airone.ch configuration.
 
 ---
 
-**Version**: 1.0.0  
-**Compatibilité**: PrestaShop 9.0+  
-**Licence**: MIT
+**Version**: 1.0.0-ps8  
+**Compatibility**: PrestaShop 8.1.5+  
+**License**: MIT
