@@ -1,21 +1,37 @@
 <?php
 /**
  * Google Merchant Feed Output - XML Generator
- * 
- * This file generates the product feed in Google Shopping XML format.
- * Access via: https://yourdomain.com/modules/googlemerchantfeed/feed.php?key=YOUR_SECRET_KEY
+ *
+ * Access via:
+ * - Merchant Center (secret key):
+ *   https://yourdomain.com/modules/googlemerchantfeed/feed.php?key=YOUR_SECRET_KEY
+ * - Back-office preview (logged-in employee + AdminModules token), included from the
+ *   module configuration with GMFEED_ADMIN_PREVIEW defined.
  */
 
-// Initialize PrestaShop
-$rootDir = dirname(dirname(dirname(__FILE__)));
-require_once $rootDir . '/config/config.inc.php';
-require_once $rootDir . '/init.php';
+// Bootstrap only when called directly (not when included from the BO module).
+if (!defined('_PS_VERSION_')) {
+    $rootDir = dirname(dirname(dirname(__FILE__)));
+    require_once $rootDir . '/config/config.inc.php';
+    require_once $rootDir . '/init.php';
+}
 
-// Security check
-$secretKey = Configuration::get('GMFEED_SECRET_KEY');
-$providedKey = Tools::getValue('key');
+// Security check: secret key (Google) OR authenticated BO preview include.
+$authorized = false;
 
-if (empty($secretKey) || $providedKey !== $secretKey) {
+if (defined('GMFEED_ADMIN_PREVIEW') && GMFEED_ADMIN_PREVIEW === true) {
+    $authorized = true;
+}
+
+if (!$authorized) {
+    $secretKey = Configuration::get('GMFEED_SECRET_KEY');
+    $providedKey = Tools::getValue('key');
+    if (!empty($secretKey) && is_string($providedKey) && hash_equals($secretKey, $providedKey)) {
+        $authorized = true;
+    }
+}
+
+if (!$authorized) {
     header('HTTP/1.1 403 Forbidden');
     die('Access denied. Invalid or missing key.');
 }
