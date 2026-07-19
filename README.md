@@ -69,6 +69,9 @@ The feed automatically includes:
 | size | Size (if attribute defined) |
 | color | Color (if attribute defined) |
 | shipping | Shipping fees |
+| custom_label_1 | `sale` if discounted, otherwise `regular` |
+
+Use **Custom label 1** in Google Ads listing/product groups to target sale-only or full-price products.
 
 
 

@@ -464,8 +464,7 @@ function outputProductItem($product, $combination, $id_lang, $currency_iso, $shi
     if ($has_discount) {
         echo '  <g:price>' . number_format($price_regular, 2, '.', '') . ' ' . $currency_iso . '</g:price>' . "\n";
         echo '  <g:sale_price>' . number_format($price_final, 2, '.', '') . ' ' . $currency_iso . '</g:sale_price>' . "\n";
-        echo '  <g:custom_label_0>sale</g:custom_label_0>' . "\n";
-        
+
         // Add sale price effective date if available
         if ($sale_from || $sale_to) {
             $date_range = ($sale_from ?: '') . '/' . ($sale_to ?: '');
@@ -474,6 +473,9 @@ function outputProductItem($product, $combination, $id_lang, $currency_iso, $shi
     } else {
         echo '  <g:price>' . number_format($price_final, 2, '.', '') . ' ' . $currency_iso . '</g:price>' . "\n";
     }
+
+    // Always set custom_label_1 so Google Ads can subdivide by it (sale vs regular).
+    echo '  <g:custom_label_1>' . ($has_discount ? 'sale' : 'regular') . '</g:custom_label_1>' . "\n";
     
     if ($brand) {
         echo '  <g:brand>' . xmlEscape($brand) . '</g:brand>' . "\n";
