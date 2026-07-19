@@ -143,6 +143,6 @@ Module developed specifically for PrestaShop 8.1.5+ and 9.x, tested with the air
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Compatibility**: PrestaShop 8.1.5+ / 9.0+  
 **License**: MIT
