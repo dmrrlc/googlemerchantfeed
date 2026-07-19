@@ -103,6 +103,22 @@ Map your categories to Google taxonomy:
 ### Refresh the feed
 The feed is generated dynamically on each request. Google fetches updates according to the configured frequency.
 
+### "N products will be removed within the next 3 days" / products expiring
+Merchant Center expires a product **30 days after its last successful update**. If a
+product stops appearing in the feed, Google can no longer refresh it and starts a
+30-day removal countdown. Checklist:
+
+- **Use a daily scheduled fetch** so every product's freshness clock resets each day.
+- **Open the feed URL in a browser and scroll to the very end.** A healthy feed ends
+  with `</rss>` and an XML comment such as `<!-- items: 512, skipped: 0 -->`. If the
+  document is cut off, PHP is aborting mid-generation (timeout / memory) and Google is
+  receiving a partial feed — the leading cause of mass "products will be removed"
+  warnings. `feed.php` now suppresses partial output (returns HTTP 500 instead of a
+  truncated 200) and raises PHP's time/memory limits to prevent this.
+- Confirm the flagged products are still **active** and have **visibility** set to
+  "Everywhere" or "Catalog only" — products set to "Search only"/"Nowhere" are excluded
+  from the feed by design and will expire in Merchant Center.
+
 ## Security
 
 - The URL contains an automatically generated secret key
