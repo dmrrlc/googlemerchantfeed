@@ -21,6 +21,8 @@ Free module to generate a product feed compatible with Google Merchant Center.
    - Choose the feed language (FR or EN)
    - Set the currency (CHF)
    - Configure default shipping fees
+   - Use **Preview Feed** (or the Admin preview URL) to inspect the XML while logged into the back office — no secret key required
+   - Copy the secret-key **Feed URL** only into Google Merchant Center (not the admin preview URL)
 
 ## Google Merchant Center Configuration
 
@@ -95,6 +97,12 @@ Map your categories to Google taxonomy:
 - Test the URL directly in your browser
 - Check PHP logs
 
+### Preview feed from the back office
+- In module configuration, click **Preview Feed** or open the **Admin preview URL**
+- You must be logged into the PrestaShop back office; the URL uses the AdminModules CSRF token and does **not** contain the secret key
+- Logged-out users, invalid tokens, or direct access without the secret key receive HTTP 403
+- Do **not** paste the admin preview URL into Google Merchant Center — use the secret-key Feed URL instead
+
 ### Google Merchant Errors
 - "Missing identifier": Add EAN codes or set `identifier_exists` to false (automatic)
 - "Invalid image": Verify that images are publicly accessible
@@ -103,11 +111,28 @@ Map your categories to Google taxonomy:
 ### Refresh the feed
 The feed is generated dynamically on each request. Google fetches updates according to the configured frequency.
 
+### "N products will be removed within the next 3 days" / products expiring
+Merchant Center expires a product **30 days after its last successful update**. If a
+product stops appearing in the feed, Google can no longer refresh it and starts a
+30-day removal countdown. Checklist:
+
+- **Use a daily scheduled fetch** so every product's freshness clock resets each day.
+- **Open the feed URL in a browser and scroll to the very end.** A healthy feed ends
+  with `</rss>` and an XML comment such as `<!-- items: 512, skipped: 0 -->`. If the
+  document is cut off, PHP is aborting mid-generation (timeout / memory) and Google is
+  receiving a partial feed — the leading cause of mass "products will be removed"
+  warnings. `feed.php` now suppresses partial output (returns HTTP 500 instead of a
+  truncated 200) and raises PHP's time/memory limits to prevent this.
+- Confirm the flagged products are still **active** and have **visibility** set to
+  "Everywhere" or "Catalog only" — products set to "Search only"/"Nowhere" are excluded
+  from the feed by design and will expire in Merchant Center.
+
 ## Security
 
-- The URL contains an automatically generated secret key
+- The Merchant Center URL contains an automatically generated secret key
 - You can regenerate this key in the configuration if needed
-- Do not share the URL publicly
+- Do not share the secret-key URL publicly
+- The admin preview URL works only for a logged-in employee with a valid back-office token
 
 ## Support
 

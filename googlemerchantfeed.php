@@ -54,6 +54,12 @@ class GoogleMerchantFeed extends Module
 
     public function getContent()
     {
+        // Admin-only feed preview: no secret key in the URL; requires a logged-in
+        // employee and a valid AdminModules CSRF token.
+        if ((int) Tools::getValue('preview_feed') === 1) {
+            $this->displayFeedPreview();
+        }
+
         $output = '';
 
         if (Tools::isSubmit('submit' . $this->name)) {
@@ -76,6 +82,38 @@ class GoogleMerchantFeed extends Module
         }
 
         return $output . $this->displayForm();
+    }
+
+    /**
+     * Stream the product feed for a logged-in back-office employee.
+     * Does not expose GMFEED_SECRET_KEY in the URL.
+     */
+    protected function displayFeedPreview()
+    {
+        $employee = $this->context->employee;
+        if (!Validate::isLoadedObject($employee) || !(int) $employee->id || !$employee->active) {
+            header('HTTP/1.1 403 Forbidden');
+            die('Access denied. Admin login required.');
+        }
+
+        $token = Tools::getValue('token');
+        $expectedToken = Tools::getAdminTokenLite('AdminModules');
+        if (!is_string($token) || !hash_equals($expectedToken, $token)) {
+            header('HTTP/1.1 403 Forbidden');
+            die('Access denied. Invalid admin token.');
+        }
+
+        // Drop any BO output buffers so the response is raw XML only.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        if (!defined('GMFEED_ADMIN_PREVIEW')) {
+            define('GMFEED_ADMIN_PREVIEW', true);
+        }
+
+        require dirname(__FILE__) . '/feed.php';
+        exit;
     }
 
     public function displayForm()
@@ -133,8 +171,18 @@ class GoogleMerchantFeed extends Module
                         'name' => 'feed_url_display',
                         'html_content' => '<div class="alert alert-info">' .
                             '<strong>' . $this->l('Your feed URL:') . '</strong><br>' .
-                            '<code>' . $this->getFeedUrl() . '</code>' .
+                            '<code>' . htmlspecialchars($this->getFeedUrl(), ENT_QUOTES, 'UTF-8') . '</code>' .
                             '<br><br>' . $this->l('Use this URL in Google Merchant Center for scheduled fetch.') .
+                            '</div>',
+                    ],
+                    [
+                        'type' => 'html',
+                        'label' => $this->l('Preview Feed URL'),
+                        'name' => 'preview_feed_url_display',
+                        'html_content' => '<div class="alert alert-warning">' .
+                            '<strong>' . $this->l('Admin preview URL:') . '</strong><br>' .
+                            '<code>' . htmlspecialchars($this->getPreviewFeedUrl(), ENT_QUOTES, 'UTF-8') . '</code>' .
+                            '<br><br>' . $this->l('Opens the feed without the secret key while you are logged into the PrestaShop back office. Do not use this URL in Google Merchant Center.') .
                             '</div>',
                     ],
                 ],
@@ -144,7 +192,7 @@ class GoogleMerchantFeed extends Module
                 ],
                 'buttons' => [
                     [
-                        'href' => $this->getFeedUrl(),
+                        'href' => $this->getPreviewFeedUrl(),
                         'title' => $this->l('Preview Feed'),
                         'icon' => 'process-icon-preview',
                         'target' => '_blank',
@@ -182,5 +230,16 @@ class GoogleMerchantFeed extends Module
     {
         $key = Configuration::get('GMFEED_SECRET_KEY');
         return Context::getContext()->shop->getBaseURL(true) . 'modules/' . $this->name . '/feed.php?key=' . $key;
+    }
+
+    /**
+     * Back-office preview URL (employee session + AdminModules token, no secret key).
+     */
+    public function getPreviewFeedUrl()
+    {
+        return AdminController::$currentIndex
+            . '&configure=' . urlencode($this->name)
+            . '&preview_feed=1'
+            . '&token=' . Tools::getAdminTokenLite('AdminModules');
     }
 }

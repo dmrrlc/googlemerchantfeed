@@ -1,24 +1,84 @@
 <?php
 /**
  * Google Merchant Feed Output - XML Generator
- * 
- * This file generates the product feed in Google Shopping XML format.
- * Access via: https://yourdomain.com/modules/googlemerchantfeed/feed.php?key=YOUR_SECRET_KEY
+ *
+ * Access via:
+ * - Merchant Center (secret key):
+ *   https://yourdomain.com/modules/googlemerchantfeed/feed.php?key=YOUR_SECRET_KEY
+ * - Back-office preview (logged-in employee + AdminModules token), included from the
+ *   module configuration with GMFEED_ADMIN_PREVIEW defined.
  */
 
-// Initialize PrestaShop
-$rootDir = dirname(dirname(dirname(__FILE__)));
-require_once $rootDir . '/config/config.inc.php';
-require_once $rootDir . '/init.php';
+// Bootstrap only when called directly (not when included from the BO module).
+if (!defined('_PS_VERSION_')) {
+    $rootDir = dirname(dirname(dirname(__FILE__)));
+    require_once $rootDir . '/config/config.inc.php';
+    require_once $rootDir . '/init.php';
+}
 
-// Security check
-$secretKey = Configuration::get('GMFEED_SECRET_KEY');
-$providedKey = Tools::getValue('key');
+// Security check: secret key (Google) OR authenticated BO preview include.
+$authorized = false;
 
-if (empty($secretKey) || $providedKey !== $secretKey) {
+if (defined('GMFEED_ADMIN_PREVIEW') && GMFEED_ADMIN_PREVIEW === true) {
+    $authorized = true;
+}
+
+if (!$authorized) {
+    $secretKey = Configuration::get('GMFEED_SECRET_KEY');
+    $providedKey = Tools::getValue('key');
+    if (!empty($secretKey) && is_string($providedKey) && hash_equals($secretKey, $providedKey)) {
+        $authorized = true;
+    }
+}
+
+if (!$authorized) {
     header('HTTP/1.1 403 Forbidden');
     die('Access denied. Invalid or missing key.');
 }
+
+/*
+ * Runtime hardening.
+ *
+ * A large catalog can hit PHP's default time/memory limits mid-loop. If that
+ * happens while we are streaming XML, Google receives a truncated feed with an
+ * HTTP 200 status and treats every missing product as removed. Those products
+ * then start Merchant Center's 30-day expiration countdown ("N products will be
+ * removed within the next 3 days"). Raising the limits and never emitting
+ * partial output as 200 is what prevents that.
+ */
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
+@set_time_limit(0);
+@ini_set('memory_limit', '512M');
+
+// Buffer the whole feed so we only ever send a complete, valid document.
+$gmfeed_complete = false;
+
+register_shutdown_function(function () {
+    global $gmfeed_complete;
+
+    if ($gmfeed_complete) {
+        return;
+    }
+
+    // We got here without finishing the feed (fatal error, timeout, OOM, or an
+    // unexpected exit). Discard the partial buffer and fail loudly with 500 so
+    // Google keeps the previously fetched product data instead of dropping the
+    // products that never made it into this response.
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        header('HTTP/1.1 500 Internal Server Error');
+        header('Content-Type: text/plain; charset=utf-8');
+    }
+
+    error_log('googlemerchantfeed: feed generation aborted before completion; partial output suppressed.');
+    echo 'Feed generation failed; incomplete output suppressed to protect Merchant Center data.';
+});
+
+ob_start();
 
 // Get configuration
 $id_lang = (int) Configuration::get('GMFEED_LANG');
@@ -60,50 +120,81 @@ $sql->where('p.visibility IN ("both", "catalog")');
 
 $products = Db::getInstance()->executeS($sql);
 
+$product_count = 0;
+$skipped_count = 0;
+
 foreach ($products as $row) {
     $id_product = (int) $row['id_product'];
-    $product = new Product($id_product, true, $id_lang, $id_shop);
-    
-    if (!Validate::isLoadedObject($product)) {
-        continue;
-    }
-    
-    // Get product combinations (variants)
-    $combinations = $product->getAttributeCombinations($id_lang);
-    
-    if (empty($combinations)) {
-        // Simple product without variants
-        outputProductItem($product, null, $id_lang, $currency_iso, $shipping_country, $shipping_price, $base_url, $id_shop);
-    } else {
-        // Product with variants - group by id_product_attribute
-        $grouped_combinations = [];
-        foreach ($combinations as $combo) {
-            $id_attr = $combo['id_product_attribute'];
-            if (!isset($grouped_combinations[$id_attr])) {
-                $grouped_combinations[$id_attr] = [
-                    'id_product_attribute' => $id_attr,
-                    'reference' => $combo['reference'],
-                    'ean13' => $combo['ean13'],
-                    'upc' => $combo['upc'],
-                    'price' => $combo['price'],
-                    'quantity' => $combo['quantity'],
-                    'attributes' => [],
+
+    // Isolate each product: a single malformed product must never abort the
+    // whole feed, otherwise every product after it would silently vanish from
+    // Merchant Center and expire.
+    try {
+        $product = new Product($id_product, true, $id_lang, $id_shop);
+
+        if (!Validate::isLoadedObject($product)) {
+            $skipped_count++;
+            continue;
+        }
+
+        // Get product combinations (variants)
+        $combinations = $product->getAttributeCombinations($id_lang);
+
+        if (empty($combinations)) {
+            // Simple product without variants
+            outputProductItem($product, null, $id_lang, $currency_iso, $shipping_country, $shipping_price, $base_url, $id_shop);
+            $product_count++;
+        } else {
+            // Product with variants - group by id_product_attribute
+            $grouped_combinations = [];
+            foreach ($combinations as $combo) {
+                $id_attr = $combo['id_product_attribute'];
+                if (!isset($grouped_combinations[$id_attr])) {
+                    $grouped_combinations[$id_attr] = [
+                        'id_product_attribute' => $id_attr,
+                        'reference' => $combo['reference'],
+                        'ean13' => $combo['ean13'],
+                        'upc' => $combo['upc'],
+                        'price' => $combo['price'],
+                        'quantity' => $combo['quantity'],
+                        'attributes' => [],
+                    ];
+                }
+                $grouped_combinations[$id_attr]['attributes'][] = [
+                    'group' => $combo['group_name'],
+                    'name' => $combo['attribute_name'],
                 ];
             }
-            $grouped_combinations[$id_attr]['attributes'][] = [
-                'group' => $combo['group_name'],
-                'name' => $combo['attribute_name'],
-            ];
+
+            foreach ($grouped_combinations as $combination) {
+                outputProductItem($product, $combination, $id_lang, $currency_iso, $shipping_country, $shipping_price, $base_url, $id_shop);
+                $product_count++;
+            }
         }
-        
-        foreach ($grouped_combinations as $combination) {
-            outputProductItem($product, $combination, $id_lang, $currency_iso, $shipping_country, $shipping_price, $base_url, $id_shop);
-        }
+    } catch (\Throwable $e) {
+        // Skip only the offending product; keep the rest of the feed intact.
+        $skipped_count++;
+        error_log('googlemerchantfeed: skipped product ' . $id_product . ': ' . $e->getMessage());
     }
 }
 
+echo '<!-- items: ' . (int) $product_count . ', skipped: ' . (int) $skipped_count . ' -->' . "\n";
 echo '</channel>' . "\n";
 echo '</rss>';
+
+/*
+ * Mark the feed as complete and flush the buffer. Reaching this point means the
+ * full document was built without a fatal error, so the shutdown guard will let
+ * the buffered output through untouched.
+ */
+$gmfeed_complete = true;
+
+if (!headers_sent()) {
+    header('Content-Type: application/xml; charset=utf-8');
+    header('Cache-Control: max-age=3600');
+}
+
+ob_end_flush();
 
 /**
  * Output a single product item in Google Shopping format
